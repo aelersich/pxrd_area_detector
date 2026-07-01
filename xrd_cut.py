@@ -92,14 +92,7 @@ def int_spectrum(img, chi_l=-45, chi_h=45):
 	    cut_2theta, cut_intensity, cut_x, cut_y = get_cut(img, ch_i)
 
 	    dead_zone_index = cut_intensity<0
-
 	    cut_intensity[dead_zone_index]=0
-	    
-	    #avg_win = 500
-	    #kernel = np.ones(avg_win) / avg_win
-	    #cut_avg = np.convolve(cut_intensity, kernel, mode='same')
-
-	    #cut_avg[dead_zone_index]=0
 	    
 	    integrand[i,:] = np.interp(int_2theta, cut_2theta, cut_intensity)
 
@@ -107,84 +100,63 @@ def int_spectrum(img, chi_l=-45, chi_h=45):
 	
 	spectrum = np.trapezoid(integrand, axis=0)
 	n_pixels = np.sum(integrand > 0, axis=0)
+	
 	n_pixels[n_pixels == 0] = 1
 	spectrum /= n_pixels
 	spectrum /= np.max(spectrum)
 
 	return int_2theta, spectrum, integrand
 
-def make_line_cut_plot():
+#######
+#
+# Plotting functions
+#
+#######
+
+def make_line_cut_plot(ax,data_folder,n_points):
+	import os
+	from tqdm import tqdm
+	
+	plt.rcParams["text.usetex"] = True
+	line_files = os.listdir(data_folder)
+	file_spacing = int(len(line_files) / n_points)
+
+	for i,f_i in enumerate(line_files):	
+		if i%file_spacing !=0:
+			continue
+		img_url = data_folder + f_i
+		img = np.asarray(Image.open(img_url))
+
+		chi = np.arange(-45,45,.1)
+		int_2theta = np.arange(10,60,0.1)
+
+		integrand = np.zeros((chi.shape[0],int_2theta.shape[0]))
+		for j, ch_j in enumerate(chi):
+			cut_2theta, cut_intensity, cut_x, cut_y = get_cut(img, ch_j)
+
+			dead_zone_index = cut_intensity<0
+			cut_intensity[dead_zone_index]=0
+
+			integrand[j,:] = np.interp(int_2theta, cut_2theta, cut_intensity)#-cut_avg)
+
+		cut_integrated = np.trapezoid(integrand,axis=0)
+		spacing = 40
+		ax.plot(int_2theta,cut_integrated + i * spacing, 'tab:green')
+
+	
+def make_line_cut_plot_combined(n_points):
 	import os
 	from tqdm import tqdm
 	eomer_folder="data/HP-YBCO_poly_eomer_line_10keV_take2/"
 	tigress_folder="data/HP-YBCO_poly_tigress_line_10keV/"
-	eomer_line_files = os.listdir(eomer_folder)
-	tigress_line_files = os.listdir(tigress_folder)
 
 	#plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.viridis(np.linspace(0,0.8,10)))
 
 	plt.rcParams["text.usetex"] = True
-
 	fig, ax = plt.subplots(1,2, figsize=(10,5))
-
-	for j,file in enumerate(tqdm(eomer_line_files)): #x=7.4
-		if j%15 !=0:
-			continue
-		img_url = eomer_folder + file
-		img = np.asarray(Image.open(img_url))
-
-		chi = np.arange(-45,45,.1)
-		int_2theta = np.arange(10,60,0.1)
-
-		integrand = np.zeros((chi.shape[0],int_2theta.shape[0]))
-		for i, ch_i in enumerate(chi):
-			cut_2theta, cut_intensity, cut_x, cut_y = get_cut(img, ch_i)
-
-			dead_zone_index = cut_intensity<0
-
-			cut_intensity[dead_zone_index]=0
-
-			#avg_win = 500
-			#kernel = np.ones(avg_win) / avg_win
-			#cut_avg = np.convolve(cut_intensity, kernel, mode='same')
-
-			#cut_avg[dead_zone_index]=0
-
-			integrand[i,:] = np.interp(int_2theta, cut_2theta, cut_intensity)#-cut_avg)
-
-		cut_integrated = np.trapezoid(integrand,axis=0)
-		spacing = 40
-		ax[0].plot(int_2theta,cut_integrated + j * spacing, 'tab:green')
-
-	for j,file in enumerate(tqdm(tigress_line_files)): #x=7.1
-		if j%31 !=0:
-			continue
-		img_url = tigress_folder + file
-		img = np.asarray(Image.open(img_url))
-
-		chi = np.arange(-45,45,.1)
-		int_2theta = np.arange(10,60,0.1)
-
-		integrand = np.zeros((chi.shape[0],int_2theta.shape[0]))
-		for i, ch_i in enumerate(chi):
-			cut_2theta, cut_intensity, cut_x, cut_y = get_cut(img, ch_i)
-
-			dead_zone_index = cut_intensity<0
-
-			cut_intensity[dead_zone_index]=0
-
-			#avg_win = 500
-			#kernel = np.ones(avg_win) / avg_win
-			#cut_avg = np.convolve(cut_intensity, kernel, mode='same')
-
-			#cut_avg[dead_zone_index]=0
-
-			integrand[i,:] = np.interp(int_2theta, cut_2theta, cut_intensity)#-cut_avg)
-
-		cut_integrated = np.trapezoid(integrand,axis=0)
-		spacing = 60
-		ax[1].plot(int_2theta,cut_integrated + j * spacing, 'tab:red')
-
+	
+	make_line_cut_plot(ax[0], eomer_folder, n_points)
+	make_line_cut_plot(ax[1], tigress_folder, n_points) 
 	ax[1].set(yticklabels=[])
 	ax[1].tick_params(left=False)
 	ax[0].set(yticklabels=[])
@@ -192,13 +164,6 @@ def make_line_cut_plot():
 
 	fig.text(0.5, 0.04, '$2\\theta$ (degrees)', ha='center')
 	plt.show()
-
-
-#######
-#
-# Test plotting functions
-#
-#######
 	
 def test_plot(chi=0):
 	img_url = data_folder + "HP-YBCO_poly_tigress_line_10keV_00001.tif"
