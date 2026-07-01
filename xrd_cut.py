@@ -107,6 +107,7 @@ def int_spectrum(img, chi_l=-45, chi_h=45):
 
 	return int_2theta, spectrum, integrand
 
+
 #######
 #
 # Plotting functions
@@ -142,7 +143,6 @@ def make_line_cut_plot(ax,data_folder,n_points):
 		cut_integrated = np.trapezoid(integrand,axis=0)
 		spacing = 40
 		ax.plot(int_2theta,cut_integrated + i * spacing, 'tab:green')
-
 	
 def make_line_cut_plot_combined(n_points):
 	import os
