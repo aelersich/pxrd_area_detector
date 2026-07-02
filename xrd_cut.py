@@ -83,9 +83,9 @@ def get_cut(img, chi):
 
 	return two_theta * 180/np.pi, cut_int, c_x, c_y
 
-def int_spectrum(img, chi_l=-45, chi_h=45):
+def int_spectrum(img, chi_l=-45, chi_h=45,deg_spacing=0.05):
 	chi = np.arange(chi_l, chi_h, 0.1)	
-	int_2theta = np.arange(0,60,0.1)
+	int_2theta = np.arange(0,60,deg_spacing)
 
 	integrand = np.zeros((chi.shape[0],int_2theta.shape[0]))
 	for i, ch_i in enumerate(chi):
@@ -114,35 +114,27 @@ def int_spectrum(img, chi_l=-45, chi_h=45):
 #
 #######
 
-def make_line_cut_plot(ax,data_folder,n_points):
+def make_line_cut_plot(ax,data_folder,n_points, color='green', spacing=.02):
+	#makes line cut plot. Run integrate_cuts.py first!
 	import os
 	from tqdm import tqdm
 	
 	plt.rcParams["text.usetex"] = True
-	line_files = os.listdir(data_folder)
-	file_spacing = int(len(line_files) / n_points)
+	line_files = sorted([f for f in os.listdir(data_folder) if f.split(".")[1] == "txt"])
+	file_spacing = np.round(len(line_files) / n_points)
 
-	for i,f_i in enumerate(line_files):	
+	for i,f_i in enumerate(line_files):
 		if i%file_spacing !=0:
 			continue
-		img_url = data_folder + f_i
-		img = np.asarray(Image.open(img_url))
+		data = np.loadtxt(data_folder+f_i, delimiter=",")
+		int_2theta = data[:,0]
+		cut_integrated = data[:,1]
+		
+		mask = (int_2theta < 50) & (int_2theta >= 10)
+		int_2theta = int_2theta[mask]
+		cut_integrated = cut_integrated[mask]
 
-		chi = np.arange(-45,45,.1)
-		int_2theta = np.arange(10,60,0.1)
-
-		integrand = np.zeros((chi.shape[0],int_2theta.shape[0]))
-		for j, ch_j in enumerate(chi):
-			cut_2theta, cut_intensity, cut_x, cut_y = get_cut(img, ch_j)
-
-			dead_zone_index = cut_intensity<0
-			cut_intensity[dead_zone_index]=0
-
-			integrand[j,:] = np.interp(int_2theta, cut_2theta, cut_intensity)#-cut_avg)
-
-		cut_integrated = np.trapezoid(integrand,axis=0)
-		spacing = 40
-		ax.plot(int_2theta,cut_integrated + i * spacing, 'tab:green')
+		ax.plot(int_2theta,cut_integrated + i * spacing, 'tab:'+color)
 	
 def make_line_cut_plot_combined(n_points):
 	import os
@@ -155,8 +147,8 @@ def make_line_cut_plot_combined(n_points):
 	plt.rcParams["text.usetex"] = True
 	fig, ax = plt.subplots(1,2, figsize=(10,5))
 	
-	make_line_cut_plot(ax[0], eomer_folder, n_points)
-	make_line_cut_plot(ax[1], tigress_folder, n_points) 
+	make_line_cut_plot(ax[0], eomer_folder, n_points, 'green')
+	make_line_cut_plot(ax[1], tigress_folder, n_points, 'red') 
 	ax[1].set(yticklabels=[])
 	ax[1].tick_params(left=False)
 	ax[0].set(yticklabels=[])
