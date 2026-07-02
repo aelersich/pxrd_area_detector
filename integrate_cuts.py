@@ -14,11 +14,11 @@ class integrate_and_save:
 		img_url = self.data_folder + file
 		img = np.asarray(Image.open(img_url))
 		two_theta, counts, _ = int_spectrum(img)
-		np.savetxt(self.data_folder + file_integrated, np.stack((two_theta, counts), axis=1))	
+		np.savetxt(self.data_folder + file_integrated, np.stack((two_theta, counts), axis=1), delimiter=',')	
 		return 0
 
 
-def batch_integrate_spectra(data_folder,n_workers = 6):
+def batch_integrate_spectra(data_folder,n_workers = 10):
 	files = [f for f in os.listdir(data_folder) if f.split(".")[1] == "tif"]
 
 	with Pool(n_workers) as p:
