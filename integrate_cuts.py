@@ -3,6 +3,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 
 class integrate_and_save:
+	# in class form to avoid issues with pickling closures
 	def __init__(self, data_folder):
 		self.data_folder = data_folder
 
@@ -13,7 +14,7 @@ class integrate_and_save:
 		file_integrated = file.split(".")[0]+".txt"
 		img_url = self.data_folder + file
 		img = np.asarray(Image.open(img_url))
-		two_theta, counts, _ = int_spectrum(img)
+		two_theta, counts, _ = int_spectrum(img, deg_spacing=0.05) #~50 degress across ~1000 pixels
 		np.savetxt(self.data_folder + file_integrated, np.stack((two_theta, counts), axis=1), delimiter=',')	
 		return 0
 
