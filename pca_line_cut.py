@@ -13,36 +13,49 @@ def pca_int_spectra(data_folder, n_coeff = 10):
 	data_r = np.zeros((n_files, n_angles))
 	for i,f_i in enumerate(data_files):
 		data_r[i] = np.loadtxt(data_folder+f_i, delimiter=",")[:,1]
-
+	
+	two_theta=np.loadtxt(data_folder + data_files[0], delimiter=",")[:,0]	
+	
+		
 	cov_m = np.cov(data_r.T)
-	w, v = linalg.eigh(cov_m)
+	w, v = linalg.eigh(cov_m)  #eigenvectors v[i] should already be normalized
 	w_i = np.argsort(w)[::-1]
 	w = w[w_i]
 	v = v[:,w_i]
 	v = v[:,:n_coeff].T	
+	print(w[:n_coeff+2])	
 	coeffs = np.zeros((n_coeff,data_r.shape[0]))
 	for i in range(n_coeff):
 		coeffs[i,:] = np.dot(data_r, v[i])
 	
-	return coeffs
+	return coeffs, v, two_theta
 
+def plot_pca(data_folder, n_coeff, n_comp):
+	from matplotlib import pyplot as plt
+	coeffs, v, two_theta = pca_int_spectra(data_folder, n_coeff=n_coeff)
+	
+		
+	x_delta = 5e-3
+	x = np.arange(0, x_delta * coeffs.shape[1], x_delta)
+	legend=[]
+	for i in range(n_coeff):
+		plt.plot(x,coeffs[i])
+		legend.append(f"Component {i+1}")
+	plt.legend(legend)
+	plt.xlabel("Position (mm)")
+	plt.ylabel("PCA component (arb.)")
+	plt.show()
+	
+	plt.plot(two_theta,v.T[:,:n_comp])
+	plt.xlabel("2theta (deg)")
+	plt.ylabel("Intensity (arb.)")
+	plt.legend(legend[:n_comp])
+	plt.show()
+	
 
 if __name__ == "__main__":
 	eomer_folder="data/HP-YBCO_poly_eomer_line_10keV_take2/"
 	tigress_folder="data/HP-YBCO_poly_tigress_line_10keV/"
-
-	from matplotlib import pyplot as plt
-	n_coeff=3	
-	coeffs = pca_int_spectra(eomer_folder, n_coeff=n_coeff)
 	
-	for i in range(n_coeff):
-		plt.plot(coeffs[i])
-	plt.show()
-	
-	n_coeff=10	
-	coeffs = pca_int_spectra(tigress_folder, n_coeff=n_coeff)
-	
-	for i in range(n_coeff):
-		plt.plot(coeffs[i])
-	plt.show()
-		
+	plot_pca(eomer_folder, 3,2)
+	plot_pca(tigress_folder, 5,3)	
